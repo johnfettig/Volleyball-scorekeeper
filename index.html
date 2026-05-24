@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Volleyball Score</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -17,6 +19,7 @@
 
   html {
     height: 100%;
+    background: #111;
   }
 
   html, body {
@@ -24,6 +27,7 @@
     overflow: hidden;
     font-family: 'Georgia', serif;
     touch-action: manipulation;
+    background: #111;
   }
 
   body {
@@ -58,7 +62,7 @@
 
   .team-name {
     position: absolute;
-    top: 18px;
+    top: calc(18px + env(safe-area-inset-top, 0px));
     font-size: clamp(16px, 3.5vw, 36px);
     font-weight: 700;
     color: white;
@@ -69,7 +73,7 @@
 
   .set-dots {
     position: absolute;
-    top: 62px;
+    top: calc(62px + env(safe-area-inset-top, 0px));
     display: flex;
     gap: 8px;
     pointer-events: none;
@@ -104,7 +108,7 @@
   }
 
   @media (orientation: landscape) {
-    #bottom-bar { height: 56px; }
+    #bottom-bar { height: calc(56px + env(safe-area-inset-bottom, 0px)); }
     .team-name { top: 10px; font-size: clamp(13px, 3vh, 26px); }
     .set-dots { top: 38px; }
     .dot { width: 10px; height: 10px; }
@@ -114,13 +118,14 @@
 
   /* ── BOTTOM BAR ── */
   #bottom-bar {
-    height: 72px;
+    height: calc(72px + env(safe-area-inset-bottom, 0px));
     background: #111;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px));
     gap: 8px;
+    flex-shrink: 0;
   }
 
   .bar-group {
