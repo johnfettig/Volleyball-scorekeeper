@@ -15,17 +15,29 @@
     --font-team: 'Georgia', serif;
   }
 
+  html {
+    height: 100%;
+  }
+
   html, body {
-    height: 100%; width: 100%;
+    width: 100%;
     overflow: hidden;
     font-family: 'Georgia', serif;
     touch-action: manipulation;
   }
 
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+  }
+
   /* ── MAIN SCOREBOARDS ── */
   #scoreboard {
     display: flex;
-    height: calc(100% - 72px);
+    flex: 1;
+    min-height: 0;
   }
 
   .panel {
@@ -93,7 +105,6 @@
 
   @media (orientation: landscape) {
     #bottom-bar { height: 56px; }
-    #scoreboard { height: calc(100% - 56px); }
     .team-name { top: 10px; font-size: clamp(13px, 3vh, 26px); }
     .set-dots { top: 38px; }
     .dot { width: 10px; height: 10px; }
