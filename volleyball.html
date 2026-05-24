@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Volleyball Score</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --home-color: #1400FF;
+    --away-color: #E60000;
+    --btn-bg: rgba(255,255,255,0.15);
+    --btn-border: rgba(255,255,255,0.3);
+    --font-team: 'Georgia', serif;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    overflow: hidden;
+    font-family: 'Georgia', serif;
+    touch-action: manipulation;
+  }
+
+  /* ── MAIN SCOREBOARDS ── */
+  #scoreboard {
+    display: flex;
+    height: calc(100% - 72px);
+  }
+
+  .panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    transition: filter 0.08s;
+  }
+  .panel:active { filter: brightness(1.15); }
+
+  .panel.home { background: var(--home-color); }
+  .panel.away { background: var(--away-color); }
+
+  .team-name {
+    position: absolute;
+    top: 18px;
+    font-size: clamp(20px, 4vw, 36px);
+    font-weight: 700;
+    color: white;
+    letter-spacing: 0.04em;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    pointer-events: none;
+  }
+
+  .set-dots {
+    position: absolute;
+    top: 62px;
+    display: flex;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    transition: background 0.2s;
+  }
+  .dot.won { background: white; }
+
+  .score {
+    font-size: clamp(100px, 22vw, 220px);
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+    pointer-events: none;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    transition: transform 0.1s cubic-bezier(.17,.67,.35,1.4);
+  }
+  .score.bump { transform: scale(1.12); }
+
+  /* tap hint */
+  .tap-hint {
+    position: absolute;
+    bottom: 18px;
+    color: rgba(255,255,255,0.4);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+
+  /* ── BOTTOM BAR ── */
+  #bottom-bar {
+    height: 72px;
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    gap: 8px;
+  }
+
+  .bar-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .bar-btn {
+    height: 44px;
+    min-width: 44px;
+    border: none;
+    border-radius: 10px;
+    background: #2a2a2a;
+    color: white;
+    font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.12s, opacity 0.12s;
+    padding: 0 14px;
+  }
+  .bar-btn:active { background: #444; }
+  .bar-btn:disabled { opacity: 0.3; }
+  .bar-btn.danger { background: #5a1a1a; }
+  .bar-btn.danger:active { background: #8a2a2a; }
+  .bar-btn.accent { background: #1a3a6a; }
+  .bar-btn.accent:active { background: #2a5aaa; }
+
+  .bar-label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: #888;
+    text-align: center;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #1a1a1a;
+    border-radius: 20px;
+    padding: 28px 24px;
+    width: min(380px, 92vw);
+    color: white;
+  }
+  .modal h2 { font-size: 22px; margin-bottom: 20px; text-align: center; }
+
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; letter-spacing: 0.05em; }
+  .modal-field input {
+    width: 100%; padding: 12px 14px;
+    background: #2a2a2a; border: 1px solid #444;
+    border-radius: 10px; color: white; font-size: 16px;
+    font-family: Georgia, serif;
+    outline: none;
+  }
+  .modal-field input:focus { border-color: #6699ff; }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+  .modal-btn {
+    flex: 1; padding: 14px;
+    border: none; border-radius: 12px;
+    font-size: 16px; font-family: Georgia, serif;
+    cursor: pointer; font-weight: 700;
+    transition: opacity 0.12s;
+  }
+  .modal-btn:active { opacity: 0.8; }
+  .modal-btn.primary { background: white; color: #111; }
+  .modal-btn.secondary { background: #2a2a2a; color: white; }
+
+  /* finish set modal */
+  .finish-info {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .finish-scores {
+    display: flex; gap: 12px; justify-content: center; margin: 12px 0;
+  }
+  .finish-score-box {
+    flex: 1; padding: 16px 10px; border-radius: 14px;
+    text-align: center;
+  }
+  .finish-score-box .fs-team { font-size: 14px; color: rgba(255,255,255,0.75); margin-bottom: 4px; }
+  .finish-score-box .fs-score { font-size: 42px; font-weight: 900; color: white; }
+
+  /* confirm modal */
+  .confirm-msg { text-align: center; color: #ccc; font-size: 16px; margin-bottom: 24px; }
+
+  /* SVG icons */
+  svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+
+<!-- SCOREBOARDS -->
+<div id="scoreboard">
+  <div class="panel home" id="home-panel" onclick="addPoint('home')">
+    <span class="team-name" id="home-name">Typhoon</span>
+    <div class="set-dots" id="home-dots"></div>
+    <div class="score" id="home-score">0</div>
+    <span class="tap-hint">TAP TO SCORE</span>
+  </div>
+  <div class="panel away" id="away-panel" onclick="addPoint('away')">
+    <span class="team-name" id="away-name">Away</span>
+    <div class="set-dots" id="away-dots"></div>
+    <div class="score" id="away-score">0</div>
+    <span class="tap-hint">TAP TO SCORE</span>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="bottom-bar">
+  <div class="bar-group">
+    <button class="bar-btn" id="undo-btn" onclick="undo()" title="Undo" disabled>
+      <svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+    </button>
+    <button class="bar-btn" id="redo-btn" onclick="redo()" title="Redo" disabled>
+      <svg viewBox="0 0 24 24"><polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 0 4-4h12"/></svg>
+    </button>
+  </div>
+
+  <div class="bar-group">
+    <button class="bar-btn accent" onclick="openFinishSet()" title="Finish Set">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
+    <button class="bar-btn danger" onclick="openReset()" title="Reset">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+    </button>
+    <button class="bar-btn" onclick="openSettings()" title="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <h2>Settings</h2>
+    <div class="modal-field">
+      <label>HOME TEAM NAME</label>
+      <input type="text" id="home-name-input" placeholder="Home" maxlength="16">
+    </div>
+    <div class="modal-field">
+      <label>HOME TEAM COLOR</label>
+      <input type="color" id="home-color-input" value="#1400FF" style="height:44px;padding:4px 8px;cursor:pointer;">
+    </div>
+    <div class="modal-field">
+      <label>AWAY TEAM NAME</label>
+      <input type="text" id="away-name-input" placeholder="Away" maxlength="16">
+    </div>
+    <div class="modal-field">
+      <label>AWAY TEAM COLOR</label>
+      <input type="color" id="away-color-input" value="#E60000" style="height:44px;padding:4px 8px;cursor:pointer;">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="closeModal('settings-modal')">Cancel</button>
+      <button class="modal-btn primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- FINISH SET MODAL -->
+<div class="modal-overlay" id="finish-modal">
+  <div class="modal">
+    <h2>Finish Set?</h2>
+    <div class="finish-info">
+      <div class="finish-scores">
+        <div class="finish-score-box" id="fs-home-box">
+          <div class="fs-team" id="fs-home-name">Home</div>
+          <div class="fs-score" id="fs-home-score">0</div>
+        </div>
+        <div class="finish-score-box" id="fs-away-box">
+          <div class="fs-team" id="fs-away-name">Away</div>
+          <div class="fs-score" id="fs-away-score">0</div>
+        </div>
+      </div>
+      <div id="fs-winner" style="color:#ddd;font-size:15px;margin-top:4px;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="closeModal('finish-modal')">Cancel</button>
+      <button class="modal-btn primary" onclick="confirmFinishSet()">Finish Set</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESET MODAL -->
+<div class="modal-overlay" id="reset-modal">
+  <div class="modal">
+    <h2>Reset</h2>
+    <p class="confirm-msg">This will clear all scores and set counts. Are you sure?</p>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="closeModal('reset-modal')">Cancel</button>
+      <button class="modal-btn primary" style="background:#c0392b;" onclick="confirmReset()">Reset Everything</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let state = {
+  home: { name: 'Home', score: 0, sets: 0, color: '#1400FF' },
+  away: { name: 'Away',    score: 0, sets: 0, color: '#E60000' },
+};
+
+let history = []; // for undo
+let future  = []; // for redo
+
+// ── HELPERS ──
+function cloneState() {
+  return JSON.parse(JSON.stringify(state));
+}
+
+function pushHistory() {
+  history.push(cloneState());
+  future = [];
+  updateUndoRedo();
+}
+
+function updateUndoRedo() {
+  document.getElementById('undo-btn').disabled = history.length === 0;
+  document.getElementById('redo-btn').disabled = future.length === 0;
+}
+
+// ── RENDER ──
+function render() {
+  document.getElementById('home-score').textContent = state.home.score;
+  document.getElementById('away-score').textContent = state.away.score;
+  document.getElementById('home-name').textContent  = state.home.name;
+  document.getElementById('away-name').textContent  = state.away.name;
+  document.getElementById('home-panel').style.background = state.home.color;
+  document.getElementById('away-panel').style.background = state.away.color;
+
+  renderDots('home');
+  renderDots('away');
+}
+
+function renderDots(side) {
+  const container = document.getElementById(side + '-dots');
+  const maxSets = Math.max(state.home.sets, state.away.sets, 2); // show at least 3 dots
+  const show = Math.max(maxSets + 1, 3);
+  container.innerHTML = '';
+  for (let i = 0; i < show; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < state[side].sets ? ' won' : '');
+    container.appendChild(d);
+  }
+}
+
+// ── SCORING ──
+function addPoint(side) {
+  pushHistory();
+  state[side].score++;
+  bumpScore(side);
+  render();
+}
+
+function bumpScore(side) {
+  const el = document.getElementById(side + '-score');
+  el.classList.remove('bump');
+  void el.offsetWidth; // reflow
+  el.classList.add('bump');
+  setTimeout(() => el.classList.remove('bump'), 200);
+}
+
+// ── UNDO / REDO ──
+function undo() {
+  if (!history.length) return;
+  future.push(cloneState());
+  state = history.pop();
+  render();
+  updateUndoRedo();
+}
+
+function redo() {
+  if (!future.length) return;
+  history.push(cloneState());
+  state = future.pop();
+  render();
+  updateUndoRedo();
+}
+
+// ── FINISH SET ──
+function openFinishSet() {
+  document.getElementById('fs-home-name').textContent  = state.home.name;
+  document.getElementById('fs-away-name').textContent  = state.away.name;
+  document.getElementById('fs-home-score').textContent = state.home.score;
+  document.getElementById('fs-away-score').textContent = state.away.score;
+  document.getElementById('fs-home-box').style.background = state.home.color;
+  document.getElementById('fs-away-box').style.background = state.away.color;
+
+  let winnerText = '';
+  if (state.home.score > state.away.score)
+    winnerText = state.home.name + ' wins the set!';
+  else if (state.away.score > state.home.score)
+    winnerText = state.away.name + ' wins the set!';
+  else
+    winnerText = 'Scores are tied.';
+  document.getElementById('fs-winner').textContent = winnerText;
+
+  openModal('finish-modal');
+}
+
+function confirmFinishSet() {
+  pushHistory();
+  if (state.home.score > state.away.score) state.home.sets++;
+  else if (state.away.score > state.home.score) state.away.sets++;
+  // tie: no set awarded
+  state.home.score = 0;
+  state.away.score = 0;
+  closeModal('finish-modal');
+  render();
+}
+
+// ── RESET ──
+function openReset() { openModal('reset-modal'); }
+
+function confirmReset() {
+  pushHistory();
+  state.home.score = 0; state.home.sets = 0;
+  state.away.score = 0; state.away.sets = 0;
+  closeModal('reset-modal');
+  render();
+}
+
+// ── SETTINGS ──
+function openSettings() {
+  document.getElementById('home-name-input').value  = state.home.name;
+  document.getElementById('away-name-input').value  = state.away.name;
+  document.getElementById('home-color-input').value = state.home.color;
+  document.getElementById('away-color-input').value = state.away.color;
+  openModal('settings-modal');
+}
+
+function saveSettings() {
+  pushHistory();
+  state.home.name  = document.getElementById('home-name-input').value.trim()  || 'Home';
+  state.away.name  = document.getElementById('away-name-input').value.trim()  || 'Away';
+  state.home.color = document.getElementById('home-color-input').value;
+  state.away.color = document.getElementById('away-color-input').value;
+  closeModal('settings-modal');
+  render();
+}
+
+// ── MODAL HELPERS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close modal on overlay tap
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (document.querySelector('.modal-overlay.open')) return;
+  if (e.key === 'ArrowLeft' || e.key === 'a') addPoint('home');
+  if (e.key === 'ArrowRight' || e.key === 'd') addPoint('away');
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redo(); }
+});
+
+// ── INIT ──
+render();
+updateUndoRedo();
+</script>
+</body>
+</html>
